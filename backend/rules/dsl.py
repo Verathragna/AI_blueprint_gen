@@ -106,4 +106,21 @@ def evaluate_rules(rules: List[Dict[str, Any]], building: Building) -> List[Rule
     violations: List[RuleViolation] = []
     for r in rules:
         violations.extend(evaluate_rule(r, building))
+    # Connectivity rule (implicit): if specified via kind
+    if any(r.get("kind") == "connected_rooms" for r in rules):
+        # Build adjacency by shared edges/overlap
+        from backend.models.graphs import build_room_adjacency
+        for f in building.floors:
+            g = build_room_adjacency(f)
+            for sp in f.spaces:
+                if g.degree(sp.id) == 0:
+                    violations.append(
+                        RuleViolation(
+                            id="graph.connected",
+                            title="Room is isolated (no adjacency)",
+                            severity="warn",
+                            where=f"room:{sp.name}",
+                            suggestion="Snap or move room to share an edge with another room or corridor.",
+                        )
+                    )
     return violations

@@ -31,4 +31,10 @@ DEFAULT_RULES: List[Dict[str, Any]] = [
         "selector": "bedroom",
         "min": 70000,
     },
+    {
+        "id": "graph.connected.rooms",
+        "title": "Rooms should be connected (no isolated spaces)",
+        "severity": "warn",
+        "kind": "connected_rooms"
+    },
 ]

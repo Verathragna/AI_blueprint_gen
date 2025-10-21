@@ -53,6 +53,68 @@ def refine_layout(layout: LayoutResult | dict, brief: Brief | dict, iterations: 
     return layout
 
 
+def ensure_connectivity(layout: LayoutResult | dict, brief: Brief | dict, max_passes: int = 3) -> LayoutResult:
+    if not isinstance(layout, LayoutResult):
+        layout = LayoutResult(**layout)
+    if not isinstance(brief, Brief):
+        brief = Brief(**brief)
+
+    def bbox(r):
+        return (r.x, r.y, r.x + r.w, r.y + r.h)
+
+    def y_overlap(a, b):
+        ax0, ay0, ax1, ay1 = bbox(a)
+        bx0, by0, bx1, by1 = bbox(b)
+        return not (ay1 <= by0 or by1 <= ay0)
+
+    def x_overlap(a, b):
+        ax0, ay0, ax1, ay1 = bbox(a)
+        bx0, by0, bx1, by1 = bbox(b)
+        return not (ax1 <= bx0 or bx1 <= ax0)
+
+    def center(r):
+        return (r.x + r.w / 2, r.y + r.h / 2)
+
+    for _ in range(max_passes):
+        def touches(a, b):
+            ax0, ay0, ax1, ay1 = bbox(a)
+            bx0, by0, bx1, by1 = bbox(b)
+            return not (ax1 < bx0 or bx1 < ax0 or ay1 < by0 or by1 < ay0)
+        isolated = []
+        for r in layout.rooms:
+            if not any(touches(r, o) for o in layout.rooms if o is not r):
+                isolated.append(r)
+        if not isolated:
+            break
+        for r in isolated:
+            # find nearest neighbor by Manhattan distance between centers
+            cx, cy = center(r)
+            others = [o for o in layout.rooms if o is not r]
+            if not others:
+                continue
+            nearest = min(others, key=lambda o: abs(center(o)[0] - cx) + abs(center(o)[1] - cy))
+            # try to snap horizontally if y-overlap, else vertically
+            if y_overlap(r, nearest):
+                # try place to the right of nearest
+                new_x = nearest.x + nearest.w
+                if new_x + r.w <= brief.building_w:
+                    r.x = new_x
+                else:
+                    # place to the left
+                    r.x = max(0, nearest.x - r.w)
+                # align vertically within bounds
+                r.y = min(max(r.y, 0), max(0, brief.building_h - r.h))
+            else:
+                # vertical snap below or above
+                new_y = nearest.y + nearest.h
+                if new_y + r.h <= brief.building_h:
+                    r.y = new_y
+                else:
+                    r.y = max(0, nearest.y - r.h)
+                r.x = min(max(r.x, 0), max(0, brief.building_w - r.w))
+    return layout
+
+
 def add_corridor(layout: LayoutResult | dict, brief: Brief | dict) -> LayoutResult:
     if not isinstance(layout, LayoutResult):
         layout = LayoutResult(**layout)

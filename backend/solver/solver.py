@@ -7,7 +7,7 @@ except Exception:  # pragma: no cover - allow working without OR-Tools installed
     cp_model = None
 
 from backend.models.schema import Brief, LayoutResult, PlacedRoom, RoomSpec
-from backend.solver.refine import add_corridor
+from backend.solver.refine import add_corridor, ensure_connectivity
 from backend.solver.cpsat import solve_rect_pack
 from backend.solver.packing import pack_next_fit
 
@@ -34,11 +34,15 @@ class LayoutSolver:
 
         # Optionally add corridor if requested
         layout = add_corridor(layout, brief)
+        # Ensure connectivity (snap isolated rooms)
+        layout = ensure_connectivity(layout, brief)
 
         # Try CP-SAT if available; fall back to heuristic result
         cp_layout = solve_rect_pack(brief, layout)
         if cp_layout is not None:
             layout = cp_layout
+            # post-process connectivity again just in case
+            layout = ensure_connectivity(layout, brief)
 
         return layout.model_dump()
 
