@@ -1,0 +1,32 @@
+# Files to ignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+.pytest_cache/
+.mypy_cache/
+.pyre/
+coverage*
+
+# Node/Frontend
+node_modules/
+dist/
+.build/
+*.log
+*.lock
+
+# OS/Editors
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
