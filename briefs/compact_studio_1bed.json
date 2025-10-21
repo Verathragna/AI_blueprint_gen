@@ -1,0 +1,17 @@
+{
+  "building_w": 800,
+  "building_h": 600,
+  "building_floors": 1,
+  "rooms": [
+    { "name": "living",  "min_w": 260, "min_h": 260, "target_area": 80000  },
+    { "name": "kitchen", "min_w": 220, "min_h": 220, "target_area": 60000  },
+    { "name": "bed1",    "min_w": 260, "min_h": 260, "target_area": 70000  },
+    { "name": "bath",    "min_w": 140, "min_h": 200, "target_area": 28000  }
+  ],
+  "soft": { "adjacency": [ { "a": "kitchen", "b": "living" } ] },
+  "hard": { "min_corridor_width": 90 },
+  "weights": { "adjacency_missing": 2.0, "bedroom_privacy": 1.0, "aspect_ratio_deviation": 0.2, "area_target_deviation": 0.1 },
+  "tenant_id": "demo-tenant",
+  "consent_external": false,
+  "seed": 606
+}

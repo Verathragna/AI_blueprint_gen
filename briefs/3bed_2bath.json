@@ -1,0 +1,20 @@
+{
+  "building_w": 1400,
+  "building_h": 1000,
+  "building_floors": 1,
+  "rooms": [
+    { "name": "living",  "min_w": 350, "min_h": 300, "target_area": 140000 },
+    { "name": "kitchen", "min_w": 300, "min_h": 250, "target_area": 80000  },
+    { "name": "bed1",    "min_w": 300, "min_h": 300, "target_area": 100000 },
+    { "name": "bed2",    "min_w": 300, "min_h": 300, "target_area": 100000 },
+    { "name": "bed3",    "min_w": 300, "min_h": 300, "target_area": 90000  },
+    { "name": "bath1",   "min_w": 160, "min_h": 220, "target_area": 32000  },
+    { "name": "bath2",   "min_w": 160, "min_h": 220, "target_area": 32000  }
+  ],
+  "soft": { "adjacency": [ { "a": "kitchen", "b": "living" } ] },
+  "hard": { "min_corridor_width": 120 },
+  "weights": { "adjacency_missing": 2.0, "bedroom_privacy": 1.0, "aspect_ratio_deviation": 0.25, "area_target_deviation": 0.1 },
+  "tenant_id": "demo-tenant",
+  "consent_external": false,
+  "seed": 202
+}
