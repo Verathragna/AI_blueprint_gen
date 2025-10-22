@@ -7,7 +7,7 @@ except Exception:  # pragma: no cover - allow working without OR-Tools installed
     cp_model = None
 
 from backend.models.schema import Brief, LayoutResult, PlacedRoom, RoomSpec
-from backend.solver.refine import add_corridor, ensure_connectivity, keep_corridor_clear
+from backend.solver.refine import add_corridor, ensure_connectivity, keep_corridor_clear, resolve_overlaps
 from backend.solver.cpsat import solve_rect_pack
 from backend.solver.packing import pack_next_fit, pack_with_hub
 
@@ -66,7 +66,6 @@ class LayoutSolver:
                 layout = cp_layout if cp_layout is not None else init
             else:
                 layout = init
-            from backend.solver.refine import resolve_overlaps
             # After CP-SAT, avoid heuristic moves that can overlap; just run a safety resolver
             layout = resolve_overlaps(layout, brief)
             layout = keep_corridor_clear(layout, brief)
@@ -76,7 +75,7 @@ class LayoutSolver:
             # Ensure connectivity (snap isolated rooms)
             layout = ensure_connectivity(layout, brief)
             # Attraction to hub
-            from backend.solver.refine import attract_to_hub, resolve_overlaps
+            from backend.solver.refine import attract_to_hub
             layout = attract_to_hub(layout, brief)
             layout = resolve_overlaps(layout, brief)
             layout = keep_corridor_clear(layout, brief)
@@ -89,6 +88,8 @@ class LayoutSolver:
             layout = ensure_connectivity(layout, brief)
             from backend.solver.refine import attract_to_hub
             layout = attract_to_hub(layout, brief)
+            # final safety: resolve any overlaps and clear corridor band
+            layout = resolve_overlaps(layout, brief)
             layout = keep_corridor_clear(layout, brief)
 
         return layout.model_dump()
