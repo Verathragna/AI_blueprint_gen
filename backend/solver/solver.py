@@ -34,20 +34,34 @@ class LayoutSolver:
             if not layout.rooms:
                 layout = pack_next_fit(brief)
 
-        # Optionally add corridor if requested
-        layout = add_corridor(layout, brief)
-        # Ensure connectivity (snap isolated rooms)
-        layout = ensure_connectivity(layout, brief)
-        # Attraction to hub
-        from backend.solver.refine import attract_to_hub
-        layout = attract_to_hub(layout, brief)
+        # Corridor policy
+        private_count = len([s for s in (brief.rooms if isinstance(brief, Brief) else Brief(**brief).rooms) if s.name.lower().startswith('bed') or s.name.lower().startswith('bath')])
+        min_priv = (brief.connectivity.min_private_for_corridor if isinstance(brief, Brief) and brief.connectivity else 3)
+        use_corr = private_count >= min_priv
+
+        if use_corr:
+            # Insert corridor layout heuristically, then refine
+            from backend.solver.packing import pack_with_corridor
+            layout = pack_with_corridor(brief)
+            from backend.solver.refine import attract_to_corridor, ensure_corridor_overlap
+            layout = attract_to_corridor(layout, brief)
+            layout = ensure_corridor_overlap(layout, brief)
+        else:
+            # Optionally add corridor if requested
+            layout = add_corridor(layout, brief)
+            # Ensure connectivity (snap isolated rooms)
+            layout = ensure_connectivity(layout, brief)
+            # Attraction to hub
+            from backend.solver.refine import attract_to_hub
+            layout = attract_to_hub(layout, brief)
 
         # Try CP-SAT if available; fall back to heuristic result
-        cp_layout = solve_rect_pack(brief, layout)
+        cp_layout = None if use_corr else solve_rect_pack(brief, layout)
         if cp_layout is not None:
             layout = cp_layout
             # post-process connectivity again just in case and attract
             layout = ensure_connectivity(layout, brief)
+            from backend.solver.refine import attract_to_hub
             layout = attract_to_hub(layout, brief)
 
         return layout.model_dump()

@@ -37,4 +37,16 @@ DEFAULT_RULES: List[Dict[str, Any]] = [
         "severity": "warn",
         "kind": "connected_rooms"
     },
+    {
+        "id": "corridor.private.touch",
+        "title": "Private rooms must touch corridor",
+        "severity": "error",
+        "kind": "private_rooms_to_corridor"
+    },
+    {
+        "id": "corridor.living.end",
+        "title": "Corridor should connect to living at an end",
+        "severity": "warn",
+        "kind": "corridor_touches_living"
+    }
 ]

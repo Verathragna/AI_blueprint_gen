@@ -54,6 +54,13 @@ class SoftWeights(BaseModel):
     hub_distance: float = 0.3
 
 
+class Connectivity(BaseModel):
+    min_private_for_corridor: int = 3
+    corridor_width: int = 120
+    min_overlap: int = 50
+    require_living_end: bool = True
+
+
 class Brief(BaseModel):
     building_w: PositiveInt = Field(..., description="Envelope width in units")
     building_h: PositiveInt = Field(..., description="Envelope height in units")
@@ -64,6 +71,7 @@ class Brief(BaseModel):
     hard: Optional[HardConstraints] = None
     soft: Optional[SoftObjectives] = None
     weights: Optional[SoftWeights] = None
+    connectivity: Optional[Connectivity] = None
     # Security/governance
     tenant_id: Optional[str] = None
     consent_external: bool = False

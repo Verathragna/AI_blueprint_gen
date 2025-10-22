@@ -160,6 +160,77 @@ def attract_to_hub(layout: LayoutResult | dict, brief: Brief | dict, step: int =
     return layout
 
 
+def attract_to_corridor(layout: LayoutResult | dict, brief: Brief | dict, step: int = 20, iters: int = 20) -> LayoutResult:
+    if not isinstance(layout, LayoutResult):
+        layout = LayoutResult(**layout)
+    if not isinstance(brief, Brief):
+        brief = Brief(**brief)
+    corridor = next((r for r in layout.rooms if r.name.lower().startswith("corridor")), None)
+    if corridor is None:
+        return layout
+    def is_private(r):
+        n = r.name.lower()
+        return n.startswith("bed") or n.startswith("bath")
+    def touches(a,b):
+        return not (a.x + a.w < b.x or b.x + b.w < a.x or a.y + a.h < b.y or b.y + b.h < a.y)
+    for _ in range(iters):
+        moved=False
+        for r in layout.rooms:
+            if not is_private(r):
+                continue
+            if not touches(r, corridor):
+                # move vertically toward corridor if above/below else horizontally
+                if r.y + r.h <= corridor.y:
+                    r.y = min(r.y + step, corridor.y - r.h)
+                elif corridor.y + corridor.h <= r.y:
+                    r.y = max(r.y - step, 0)
+                else:
+                    if r.x + r.w <= corridor.x:
+                        r.x = min(r.x + step, corridor.x - r.w)
+                    elif corridor.x + corridor.w <= r.x:
+                        r.x = max(r.x - step, 0)
+                moved=True
+        if not moved:
+            break
+    return layout
+
+
+def ensure_corridor_overlap(layout: LayoutResult | dict, brief: Brief | dict) -> LayoutResult:
+    if not isinstance(layout, LayoutResult):
+        layout = LayoutResult(**layout)
+    if not isinstance(brief, Brief):
+        brief = Brief(**brief)
+    corridor = next((r for r in layout.rooms if r.name.lower().startswith("corridor")), None)
+    if corridor is None:
+        return layout
+    min_ov = (brief.connectivity.min_overlap if brief.connectivity and brief.connectivity.min_overlap else 50)
+    def overlap_len(a0,a1,b0,b1):
+        return max(0, min(a1,b1) - max(a0,b0))
+    for r in layout.rooms:
+        if r is corridor:
+            continue
+        # if sharing vertical edge
+        if r.x + r.w == corridor.x or corridor.x + corridor.w == r.x:
+            ov = overlap_len(r.y, r.y + r.h, corridor.y, corridor.y + corridor.h)
+            if 0 < ov < min_ov:
+                # slide to increase overlap
+                want = min_ov - ov
+                if r.y > corridor.y:
+                    r.y = max(0, r.y - want)
+                else:
+                    r.y = min(r.y + want, max(0, brief.building_h - r.h))
+        # if sharing horizontal edge
+        if r.y + r.h == corridor.y or corridor.y + corridor.h == r.y:
+            ov = overlap_len(r.x, r.x + r.w, corridor.x, corridor.x + corridor.w)
+            if 0 < ov < min_ov:
+                want = min_ov - ov
+                if r.x > corridor.x:
+                    r.x = max(0, r.x - want)
+                else:
+                    r.x = min(r.x + want, max(0, brief.building_w - r.w))
+    return layout
+
+
 def add_corridor(layout: LayoutResult | dict, brief: Brief | dict) -> LayoutResult:
     if not isinstance(layout, LayoutResult):
         layout = LayoutResult(**layout)

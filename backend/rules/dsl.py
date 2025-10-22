@@ -123,4 +123,57 @@ def evaluate_rules(rules: List[Dict[str, Any]], building: Building) -> List[Rule
                             suggestion="Snap or move room to share an edge with another room or corridor.",
                         )
                     )
+    # Corridor-private rules
+    if any(r.get("kind") == "private_rooms_to_corridor" for r in rules) or any(r.get("kind") == "corridor_touches_living" for r in rules):
+        corridor = None
+        for f in building.floors:
+            for sp in f.spaces:
+                if sp.name.lower().startswith("corridor"):
+                    corridor = sp
+                    break
+            if corridor:
+                break
+        if corridor:
+            min_ov = 50
+            for r in rules:
+                if r.get("kind") in ("private_rooms_to_corridor", "corridor_touches_living") and r.get("min_overlap"):
+                    try:
+                        min_ov = int(r.get("min_overlap"))
+                    except Exception:
+                        pass
+            def overlap_len(a0,a1,b0,b1):
+                return max(0, min(a1,b1) - max(a0,b0))
+            # private rooms must share corridor edge with overlap
+            for f in building.floors:
+                for sp in f.spaces:
+                    n = sp.name.lower()
+                    if n.startswith("bed") or n.startswith("bath"):
+                        v1 = (sp.x + sp.w == corridor.x and overlap_len(sp.y, sp.y+sp.h, corridor.y, corridor.y+corridor.h) >= min_ov)
+                        v2 = (corridor.x + corridor.w == sp.x and overlap_len(sp.y, sp.y+sp.h, corridor.y, corridor.y+corridor.h) >= min_ov)
+                        v3 = (sp.y + sp.h == corridor.y and overlap_len(sp.x, sp.x+sp.w, corridor.x, corridor.x+corridor.w) >= min_ov)
+                        v4 = (corridor.y + corridor.h == sp.y and overlap_len(sp.x, sp.x+sp.w, corridor.x, corridor.x+corridor.w) >= min_ov)
+                        if not (v1 or v2 or v3 or v4):
+                            violations.append(RuleViolation(
+                                id="corridor.private.touch",
+                                title="Private room not connected to corridor",
+                                severity="error",
+                                where=f"room:{sp.name}",
+                                suggestion="Move room to share an edge with the corridor.",
+                            ))
+            # living should touch an end of corridor
+            for f in building.floors:
+                for sp in f.spaces:
+                    if sp.name.lower().startswith("living"):
+                        left_end = (sp.x + sp.w == corridor.x and overlap_len(sp.y, sp.y+sp.h, corridor.y, corridor.y+corridor.h) >= min_ov and sp.x==0)
+                        right_end = (corridor.x + corridor.w == sp.x and overlap_len(sp.y, sp.y+sp.h, corridor.y, corridor.y+corridor.h) >= min_ov and corridor.x+corridor.w==building.width)
+                        top_end = (sp.y + sp.h == corridor.y and overlap_len(sp.x, sp.x+sp.w, corridor.x, corridor.x+corridor.w) >= min_ov and sp.y==0)
+                        bottom_end = (corridor.y + corridor.h == sp.y and overlap_len(sp.x, sp.x+sp.w, corridor.x, corridor.x+corridor.w) >= min_ov and corridor.y+corridor.h==building.height)
+                        if not (left_end or right_end or top_end or bottom_end):
+                            violations.append(RuleViolation(
+                                id="corridor.living.end",
+                                title="Living should connect to corridor at an end",
+                                severity="warn",
+                                where=f"room:{sp.name}",
+                                suggestion="Align living to one corridor end.",
+                            ))
     return violations

@@ -16,6 +16,72 @@ def _find_hub_name(brief: Brief) -> str | None:
     return brief.rooms[0].name if brief.rooms else None
 
 
+def pack_with_corridor(brief: Brief | Dict[str, Any]) -> LayoutResult:
+    if not isinstance(brief, Brief):
+        brief = Brief(**brief)
+    # Decide corridor width
+    cw = (brief.connectivity.corridor_width if brief.connectivity and brief.connectivity.corridor_width else 120)
+    # Insert horizontal corridor at y = approx one third
+    y = min(cw, max(0, brief.building_h // 3))
+    rooms: List[PlacedRoom] = []
+    dropped: List[str] = []
+    # corridor spans full width
+    rooms.append(PlacedRoom(name="corridor", x=0, y=y, w=brief.building_w, h=cw))
+
+    # Partition program
+    private = [s for s in brief.rooms if s.name.lower().startswith("bed") or s.name.lower().startswith("bath")]
+    others = [s for s in brief.rooms if s not in private]
+
+    def size_for(s: RoomSpec) -> Tuple[int, int]:
+        import math
+        if s.target_area:
+            w0 = max(s.min_w, int(math.sqrt(s.target_area)))
+            h0 = max(s.min_h, int(math.ceil(s.target_area / w0)))
+            return min(w0, brief.building_w), min(h0, brief.building_h)
+        return min(s.min_w, brief.building_w), min(s.min_h, brief.building_h)
+
+    # Pack private rooms along top and bottom edges
+    x_top = 0
+    x_bot = 0
+    for s in private:
+        w, h = size_for(s)
+        if x_top + w <= brief.building_w:
+            rooms.append(PlacedRoom(name=s.name, x=x_top, y=max(0, y - h), w=w, h=h))
+            x_top += w
+        elif x_bot + w <= brief.building_w:
+            rooms.append(PlacedRoom(name=s.name, x=x_bot, y=y + cw, w=w, h=h))
+            x_bot += w
+        else:
+            dropped.append(s.name)
+
+    # Living at an end of the corridor, kitchen adjacent
+    living = next((s for s in others if s.name.lower().startswith("living")), None)
+    kitchen = next((s for s in others if s.name.lower().startswith("kitchen")), None)
+    x_end = 0
+    if living:
+        lw, lh = size_for(living)
+        rooms.append(PlacedRoom(name=living.name, x=0, y=max(0, y - lh), w=lw, h=lh))
+        x_end = lw
+    if kitchen:
+        kw, kh = size_for(kitchen)
+        rooms.append(PlacedRoom(name=kitchen.name, x=x_end, y=y + cw, w=kw, h=kh))
+
+    # Other spaces: append below corridor if space
+    for s in others:
+        if living and s.name == living.name:
+            continue
+        if kitchen and s.name == kitchen.name:
+            continue
+        w, h = size_for(s)
+        if x_bot + w <= brief.building_w:
+            rooms.append(PlacedRoom(name=s.name, x=x_bot, y=y + cw, w=w, h=h))
+            x_bot += w
+        else:
+            dropped.append(s.name)
+
+    return LayoutResult(rooms=rooms, dropped=dropped)
+
+
 def pack_with_hub(brief: Brief | Dict[str, Any]) -> LayoutResult:
     if not isinstance(brief, Brief):
         brief = Brief(**brief)
