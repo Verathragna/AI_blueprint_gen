@@ -148,10 +148,10 @@ def evaluate_rules(rules: List[Dict[str, Any]], building: Building) -> List[Rule
                 for sp in f.spaces:
                     n = sp.name.lower()
                     if n.startswith("bed") or n.startswith("bath"):
-                        v1 = (sp.x + sp.w == corridor.x and overlap_len(sp.y, sp.y+sp.h, corridor.y, corridor.y+corridor.h) >= min_ov)
-                        v2 = (corridor.x + corridor.w == sp.x and overlap_len(sp.y, sp.y+sp.h, corridor.y, corridor.y+corridor.h) >= min_ov)
-                        v3 = (sp.y + sp.h == corridor.y and overlap_len(sp.x, sp.x+sp.w, corridor.x, corridor.x+corridor.w) >= min_ov)
-                        v4 = (corridor.y + corridor.h == sp.y and overlap_len(sp.x, sp.x+sp.w, corridor.x, corridor.x+corridor.w) >= min_ov)
+                        v1 = (sp.rect.x + sp.rect.w == corridor.rect.x and overlap_len(sp.rect.y, sp.rect.y+sp.rect.h, corridor.rect.y, corridor.rect.y+corridor.rect.h) >= min_ov)
+                        v2 = (corridor.rect.x + corridor.rect.w == sp.rect.x and overlap_len(sp.rect.y, sp.rect.y+sp.rect.h, corridor.rect.y, corridor.rect.y+corridor.rect.h) >= min_ov)
+                        v3 = (sp.rect.y + sp.rect.h == corridor.rect.y and overlap_len(sp.rect.x, sp.rect.x+sp.rect.w, corridor.rect.x, corridor.rect.x+corridor.rect.w) >= min_ov)
+                        v4 = (corridor.rect.y + corridor.rect.h == sp.rect.y and overlap_len(sp.rect.x, sp.rect.x+sp.rect.w, corridor.rect.x, corridor.rect.x+corridor.rect.w) >= min_ov)
                         if not (v1 or v2 or v3 or v4):
                             violations.append(RuleViolation(
                                 id="corridor.private.touch",
@@ -164,10 +164,10 @@ def evaluate_rules(rules: List[Dict[str, Any]], building: Building) -> List[Rule
             for f in building.floors:
                 for sp in f.spaces:
                     if sp.name.lower().startswith("living"):
-                        left_end = (sp.x + sp.w == corridor.x and overlap_len(sp.y, sp.y+sp.h, corridor.y, corridor.y+corridor.h) >= min_ov and sp.x==0)
-                        right_end = (corridor.x + corridor.w == sp.x and overlap_len(sp.y, sp.y+sp.h, corridor.y, corridor.y+corridor.h) >= min_ov and corridor.x+corridor.w==building.width)
-                        top_end = (sp.y + sp.h == corridor.y and overlap_len(sp.x, sp.x+sp.w, corridor.x, corridor.x+corridor.w) >= min_ov and sp.y==0)
-                        bottom_end = (corridor.y + corridor.h == sp.y and overlap_len(sp.x, sp.x+sp.w, corridor.x, corridor.x+corridor.w) >= min_ov and corridor.y+corridor.h==building.height)
+                        left_end = (sp.rect.x + sp.rect.w == corridor.rect.x and overlap_len(sp.rect.y, sp.rect.y+sp.rect.h, corridor.rect.y, corridor.rect.y+corridor.rect.h) >= min_ov and sp.rect.x==0)
+                        right_end = (corridor.rect.x + corridor.rect.w == sp.rect.x and overlap_len(sp.rect.y, sp.rect.y+sp.rect.h, corridor.rect.y, corridor.rect.y+corridor.rect.h) >= min_ov and corridor.rect.x+corridor.rect.w==building.width)
+                        top_end = (sp.rect.y + sp.rect.h == corridor.rect.y and overlap_len(sp.rect.x, sp.rect.x+sp.rect.w, corridor.rect.x, corridor.rect.x+corridor.rect.w) >= min_ov and sp.rect.y==0)
+                        bottom_end = (corridor.rect.y + corridor.rect.h == sp.rect.y and overlap_len(sp.rect.x, sp.rect.x+sp.rect.w, corridor.rect.x, corridor.rect.x+corridor.rect.w) >= min_ov and corridor.rect.y+corridor.rect.h==building.height)
                         if not (left_end or right_end or top_end or bottom_end):
                             violations.append(RuleViolation(
                                 id="corridor.living.end",
