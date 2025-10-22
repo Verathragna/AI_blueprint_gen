@@ -39,6 +39,7 @@ def evaluate_cost(building: Building, brief: Brief) -> Dict[str, float]:
         "bedroom_privacy": 0.0,
         "aspect_ratio_deviation": 0.0,
         "area_target_deviation": 0.0,
+        "hub_distance": 0.0,
     }
 
     # adjacency preferences
@@ -76,6 +77,29 @@ def evaluate_cost(building: Building, brief: Brief) -> Dict[str, float]:
         excess = max(0.0, abs(ratio - target) - tol)
         terms["aspect_ratio_deviation"] += excess
 
+    # hub distance to corridor/living (center-to-center normalized)
+    # select hub: corridor else living
+    if building.floors:
+        spaces = building.floors[0].spaces
+        hub = None
+        for sp in spaces:
+            if sp.name.lower().startswith("corridor"):
+                hub = sp; break
+        if hub is None:
+            for sp in spaces:
+                if sp.name.lower().startswith("living"):
+                    hub = sp; break
+        if hub is None and spaces:
+            hub = spaces[0]
+        if hub is not None:
+            hx, hy = hub.rect.x + hub.rect.w/2, hub.rect.y + hub.rect.h/2
+            norm = max(1.0, building.width + building.height)
+            for sp in spaces:
+                if sp is hub:
+                    continue
+                cx, cy = sp.rect.x + sp.rect.w/2, sp.rect.y + sp.rect.h/2
+                terms["hub_distance"] += (abs(cx - hx) + abs(cy - hy)) / norm
+
     # area target deviation (normalize by target to be scale-free)
     spec_targets = {s.name: s.target_area for s in brief.rooms if s.target_area}
     for sp in spaces:
@@ -95,6 +119,7 @@ def aggregate_cost(terms: Dict[str, float], brief: Brief) -> Tuple[float, Dict[s
         "bedroom_privacy": terms.get("bedroom_privacy", 0.0) * W.bedroom_privacy,
         "aspect_ratio_deviation": terms.get("aspect_ratio_deviation", 0.0) * W.aspect_ratio_deviation,
         "area_target_deviation": terms.get("area_target_deviation", 0.0) * W.area_target_deviation,
+        "hub_distance": terms.get("hub_distance", 0.0) * (getattr(W, 'hub_distance', 0.3)),
     }
     total = sum(weighted.values())
     return total, weighted

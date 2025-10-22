@@ -115,6 +115,51 @@ def ensure_connectivity(layout: LayoutResult | dict, brief: Brief | dict, max_pa
     return layout
 
 
+def attract_to_hub(layout: LayoutResult | dict, brief: Brief | dict, step: int = 20, iters: int = 20) -> LayoutResult:
+    if not isinstance(layout, LayoutResult):
+        layout = LayoutResult(**layout)
+    if not isinstance(brief, Brief):
+        brief = Brief(**brief)
+    # find hub in current layout (corridor else living*)
+    def find_hub():
+        for r in layout.rooms:
+            if r.name.lower().startswith("corridor"):
+                return r
+        for r in layout.rooms:
+            if r.name.lower().startswith("living"):
+                return r
+        return layout.rooms[0] if layout.rooms else None
+    hub = find_hub()
+    if not hub:
+        return layout
+    def touches(a, b):
+        return not (a.x + a.w < b.x or b.x + b.w < a.x or a.y + a.h < b.y or b.y + b.h < a.y)
+    def move_toward(a, b):
+        # move rectangle a towards b by step along shortest axis until boundary
+        if a.x + a.w <= b.x:  # a is left of b
+            a.x = min(a.x + step, b.x - a.w)
+        elif b.x + b.w <= a.x:  # a is right of b
+            a.x = max(a.x - step, 0)
+        if a.y + a.h <= b.y:  # a above b
+            a.y = min(a.y + step, b.y - a.h)
+        elif b.y + b.h <= a.y:  # a below b
+            a.y = max(a.y - step, 0)
+        # clamp in envelope
+        a.x = min(max(a.x, 0), max(0, brief.building_w - a.w))
+        a.y = min(max(a.y, 0), max(0, brief.building_h - a.h))
+    for _ in range(iters):
+        moved = False
+        for r in layout.rooms:
+            if r is hub:
+                continue
+            if not touches(r, hub):
+                move_toward(r, hub)
+                moved = True
+        if not moved:
+            break
+    return layout
+
+
 def add_corridor(layout: LayoutResult | dict, brief: Brief | dict) -> LayoutResult:
     if not isinstance(layout, LayoutResult):
         layout = LayoutResult(**layout)

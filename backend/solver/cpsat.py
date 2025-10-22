@@ -21,6 +21,16 @@ def _choose_size(spec: RoomSpec) -> Tuple[int, int]:
     return spec.min_w, spec.min_h
 
 
+def _find_hub_index(brief: Brief) -> int:
+    for i, s in enumerate(brief.rooms):
+        if s.name.lower().startswith("corridor"):
+            return i
+    for i, s in enumerate(brief.rooms):
+        if s.name.lower().startswith("living"):
+            return i
+    return 0
+
+
 def solve_rect_pack(brief: Brief | Dict[str, Any], seed: LayoutResult | Dict[str, Any] | None = None, time_limit_s: float = 0.5) -> LayoutResult | None:
     if cp_model is None:
         return None
@@ -71,7 +81,24 @@ def solve_rect_pack(brief: Brief | Dict[str, Any], seed: LayoutResult | Dict[str
                 model.AddHint(X[i], pr.x)
                 model.AddHint(Y[i], pr.y)
 
-    # Objective: minimize adjacency distances for preferred pairs
+    # Hard connectivity to hub
+    hub = _find_hub_index(brief)
+    for i in range(n):
+        if i == hub:
+            continue
+        touchL = model.NewBoolVar(f"touchL_{i}")
+        touchR = model.NewBoolVar(f"touchR_{i}")
+        touchT = model.NewBoolVar(f"touchT_{i}")
+        touchB = model.NewBoolVar(f"touchB_{i}")
+        # Enforce edge equalities when active
+        model.Add(X[i] + sizes[i][0] == X[hub]).OnlyEnforceIf(touchL)
+        model.Add(X[hub] + sizes[hub][0] == X[i]).OnlyEnforceIf(touchR)
+        model.Add(Y[i] + sizes[i][1] == Y[hub]).OnlyEnforceIf(touchT)
+        model.Add(Y[hub] + sizes[hub][1] == Y[i]).OnlyEnforceIf(touchB)
+        # Require at least one touch
+        model.AddBoolOr([touchL, touchR, touchT, touchB])
+
+    # Objective: minimize adjacency distances for preferred pairs and hub distance
     # Build list of preferred pairs
     prefs: List[Tuple[int, int]] = []
     if brief.soft and brief.soft.adjacency:
@@ -109,6 +136,27 @@ def solve_rect_pack(brief: Brief | Dict[str, Any], seed: LayoutResult | Dict[str
         dist = model.NewIntVar(0, brief.building_w + brief.building_h, f"d_{i}_{j}")
         model.Add(dist == dx + dy)
         dist_terms.append(dist)
+
+    # hub distance terms
+    for i in range(n):
+        if i == hub:
+            continue
+        hx = model.NewIntVar(0, brief.building_w, f"hcx")
+        hy = model.NewIntVar(0, brief.building_h, f"hcy")
+        wi, hi = sizes[hub]
+        model.Add(hx == X[hub] + wi // 2)
+        model.Add(hy == Y[hub] + hi // 2)
+        cx = model.NewIntVar(0, brief.building_w, f"cxh_{i}")
+        cy = model.NewIntVar(0, brief.building_h, f"cyh_{i}")
+        wi2, hi2 = sizes[i]
+        model.Add(cx == X[i] + wi2 // 2)
+        model.Add(cy == Y[i] + hi2 // 2)
+        dx = model.NewIntVar(0, brief.building_w, f"dxh_{i}")
+        dy = model.NewIntVar(0, brief.building_h, f"dyh_{i}")
+        model.AddAbsEquality(dx, cx - hx)
+        model.AddAbsEquality(dy, cy - hy)
+        dist_terms.append(dx)
+        dist_terms.append(dy)
 
     if dist_terms:
         model.Minimize(sum(dist_terms))

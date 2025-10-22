@@ -51,6 +51,7 @@ class SoftWeights(BaseModel):
     bedroom_privacy: float = 1.0
     aspect_ratio_deviation: float = 0.5
     area_target_deviation: float = 0.2
+    hub_distance: float = 0.3
 
 
 class Brief(BaseModel):

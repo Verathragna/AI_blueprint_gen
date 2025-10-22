@@ -9,7 +9,7 @@ except Exception:  # pragma: no cover - allow working without OR-Tools installed
 from backend.models.schema import Brief, LayoutResult, PlacedRoom, RoomSpec
 from backend.solver.refine import add_corridor, ensure_connectivity
 from backend.solver.cpsat import solve_rect_pack
-from backend.solver.packing import pack_next_fit
+from backend.solver.packing import pack_next_fit, pack_with_hub
 
 
 class LayoutSolver:
@@ -29,20 +29,26 @@ class LayoutSolver:
         if seed:
             layout = LayoutResult(**seed)
         else:
-            # improved heuristic packer
-            layout = pack_next_fit(brief)
+            # improved heuristic packer with hub-first placement
+            layout = pack_with_hub(brief)
+            if not layout.rooms:
+                layout = pack_next_fit(brief)
 
         # Optionally add corridor if requested
         layout = add_corridor(layout, brief)
         # Ensure connectivity (snap isolated rooms)
         layout = ensure_connectivity(layout, brief)
+        # Attraction to hub
+        from backend.solver.refine import attract_to_hub
+        layout = attract_to_hub(layout, brief)
 
         # Try CP-SAT if available; fall back to heuristic result
         cp_layout = solve_rect_pack(brief, layout)
         if cp_layout is not None:
             layout = cp_layout
-            # post-process connectivity again just in case
+            # post-process connectivity again just in case and attract
             layout = ensure_connectivity(layout, brief)
+            layout = attract_to_hub(layout, brief)
 
         return layout.model_dump()
 
