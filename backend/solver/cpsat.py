@@ -182,6 +182,7 @@ def solve_with_corridor(
     corridor_rect: Dict[str, int],
     seed: LayoutResult | Dict[str, Any] | None = None,
     time_limit_s: float = 1.0,
+    y_band: tuple[int, int] | None = None,
 ) -> LayoutResult | None:
     if cp_model is None:
         return None
@@ -221,7 +222,9 @@ def solve_with_corridor(
     cw = corridor_rect.get("w", max(1, brief.building_w))
     ch = corridor_rect.get("h", 120)
     XC = model.NewIntVar(cx, cx, "xc")
-    YC = model.NewIntVar(cy, cy, "yc")
+    # Allow corridor Y within a band for feasibility
+    y_min, y_max = (0, max(0, brief.building_h - ch)) if y_band is None else (max(0, y_band[0]), min(brief.building_h - ch, y_band[1]))
+    YC = model.NewIntVar(y_min, y_max, "yc")
     X2C = model.NewIntVar(cx + cw, cx + cw, "x2c")
     Y2C = model.NewIntVar(cy + ch, cy + ch, "y2c")
     SXc = model.NewIntVar(cw, cw, "sxc")
@@ -249,6 +252,12 @@ def solve_with_corridor(
         n = s.name.lower()
         if n.startswith("bed") or n.startswith("bath"):
             private.append(i)
+    min_ov = 50
+    try:
+        if brief.connectivity and brief.connectivity.min_overlap:
+            min_ov = int(brief.connectivity.min_overlap)
+    except Exception:
+        pass
     for i in private:
         touchL = model.NewBoolVar(f"ctL_{i}")
         touchR = model.NewBoolVar(f"ctR_{i}")
@@ -260,6 +269,17 @@ def solve_with_corridor(
         model.Add(XC + cw == X[i]).OnlyEnforceIf(touchR)
         model.Add(Y[i] + hi == YC).OnlyEnforceIf(touchT)
         model.Add(YC + ch == Y[i]).OnlyEnforceIf(touchB)
+        # min overlap along the orthogonal axis
+        # L/R -> vertical overlap >= min_ov
+        model.Add(Y[i] + hi - YC >= min_ov).OnlyEnforceIf(touchL)
+        model.Add(YC + ch - Y[i] >= min_ov).OnlyEnforceIf(touchL)
+        model.Add(Y[i] + hi - YC >= min_ov).OnlyEnforceIf(touchR)
+        model.Add(YC + ch - Y[i] >= min_ov).OnlyEnforceIf(touchR)
+        # T/B -> horizontal overlap >= min_ov
+        model.Add(X[i] + wi - XC >= min_ov).OnlyEnforceIf(touchT)
+        model.Add(XC + cw - X[i] >= min_ov).OnlyEnforceIf(touchT)
+        model.Add(X[i] + wi - XC >= min_ov).OnlyEnforceIf(touchB)
+        model.Add(XC + cw - X[i] >= min_ov).OnlyEnforceIf(touchB)
         model.AddBoolOr([touchL, touchR, touchT, touchB])
 
     # Living at corridor end if requested
@@ -276,7 +296,7 @@ def solve_with_corridor(
         endR = model.NewBoolVar("endR")
         model.Add(X[living] + wi == XC).OnlyEnforceIf(endL)
         model.Add(XC + cw == X[living]).OnlyEnforceIf(endR)
-        # also clamp to envelope ends
+        # also clamp to envelope ends so living sits at an end
         model.Add(X[living] == 0).OnlyEnforceIf(endL)
         model.Add(X[living] + wi == brief.building_w).OnlyEnforceIf(endR)
         model.AddBoolOr([endL, endR])

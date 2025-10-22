@@ -52,16 +52,22 @@ class LayoutSolver:
                     {"x": cor.x, "y": cor.y, "w": cor.w, "h": cor.h},
                     seed=init,
                     time_limit_s=1.0,
+                    y_band=(max(0, cor.y-200), min((brief.building_h - cor.h), cor.y+200))
                 )
-                if cp_layout is not None:
-                    layout = cp_layout
-                else:
-                    layout = init
+                if cp_layout is None:
+                    # try full-height band as fallback attempt (still CP-SAT), do not revert to heuristic silently
+                    cp_layout = solve_with_corridor(
+                        brief,
+                        {"x": cor.x, "y": cor.y, "w": cor.w, "h": cor.h},
+                        seed=init,
+                        time_limit_s=1.5,
+                        y_band=(0, max(0, brief.building_h - cor.h))
+                    )
+                layout = cp_layout if cp_layout is not None else init
             else:
                 layout = init
-            from backend.solver.refine import attract_to_corridor, ensure_corridor_overlap, resolve_overlaps
-            layout = attract_to_corridor(layout, brief)
-            layout = ensure_corridor_overlap(layout, brief)
+            from backend.solver.refine import resolve_overlaps
+            # After CP-SAT, avoid heuristic moves that can overlap; just run a safety resolver
             layout = resolve_overlaps(layout, brief)
         else:
             # Optionally add corridor if requested
