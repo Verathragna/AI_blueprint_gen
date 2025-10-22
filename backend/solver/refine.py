@@ -231,7 +231,7 @@ def ensure_corridor_overlap(layout: LayoutResult | dict, brief: Brief | dict) ->
     return layout
 
 
-def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: int = 8) -> LayoutResult:
+def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: int = 20) -> LayoutResult:
     if not isinstance(layout, LayoutResult):
         layout = LayoutResult(**layout)
     if not isinstance(brief, Brief):
@@ -245,30 +245,52 @@ def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: i
     def is_corridor(r):
         return r.name.lower().startswith("corridor")
 
+    def clear_pair(fixed, mover):
+        # compute minimal moves to place mover left/right/above/below fixed
+        candidates = []
+        # push left of fixed
+        new_x = fixed.x - mover.w
+        if new_x >= 0:
+            candidates.append((abs(mover.x - new_x), new_x, mover.y))
+        # push right of fixed
+        new_x = fixed.x + fixed.w
+        if new_x + mover.w <= brief.building_w:
+            candidates.append((abs(new_x - mover.x), new_x, mover.y))
+        # push above fixed
+        new_y = fixed.y - mover.h
+        if new_y >= 0:
+            candidates.append((abs(mover.y - new_y), mover.x, new_y))
+        # push below fixed
+        new_y = fixed.y + fixed.h
+        if new_y + mover.h <= brief.building_h:
+            candidates.append((abs(new_y - mover.y), mover.x, new_y))
+        if candidates:
+            # choose the smallest displacement
+            dist, nx, ny = min(candidates, key=lambda t: t[0])
+            mover.x = min(max(nx, 0), max(0, brief.building_w - mover.w))
+            mover.y = min(max(ny, 0), max(0, brief.building_h - mover.h))
+            return True
+        return False
+
     for _ in range(passes):
         moved = False
         for i in range(len(layout.rooms)):
             for j in range(i + 1, len(layout.rooms)):
                 a = layout.rooms[i]; b = layout.rooms[j]
-                # Skip corridor as a mover
+                # Skip corridor pair
                 if is_corridor(a) and is_corridor(b):
                     continue
                 ox, oy = overlap(a, b)
                 if ox > 0 and oy > 0:
-                    # choose which to move: never move corridor; else move b
-                    target = b if not is_corridor(b) else a
-                    # separate along smaller penetration
-                    if ox < oy:
-                        if target.x < (a.x if target is b else b.x):
-                            target.x = max(0, target.x - ox)
-                        else:
-                            target.x = min(target.x + ox, max(0, brief.building_w - target.w))
-                    else:
-                        if target.y < (a.y if target is b else b.y):
-                            target.y = max(0, target.y - oy)
-                        else:
-                            target.y = min(target.y + oy, max(0, brief.building_h - target.h))
-                    moved = True
+                    # Prefer to move the non-corridor room; otherwise move b
+                    move_b = not is_corridor(b)
+                    fixed, mover = (a, b) if move_b else (b, a)
+                    # Try to clear by minimal displacement while staying in envelope
+                    changed = clear_pair(fixed, mover)
+                    if not changed:
+                        # If mover couldn't move (bounded), try moving the other
+                        changed = clear_pair(mover, fixed)
+                    moved = moved or changed
         if not moved:
             break
     return layout
