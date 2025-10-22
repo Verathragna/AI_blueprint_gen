@@ -231,7 +231,7 @@ def ensure_corridor_overlap(layout: LayoutResult | dict, brief: Brief | dict) ->
     return layout
 
 
-def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: int = 20) -> LayoutResult:
+def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: int = 20, min_gap: int = 0) -> LayoutResult:
     if not isinstance(layout, LayoutResult):
         layout = LayoutResult(**layout)
     if not isinstance(brief, Brief):
@@ -246,26 +246,25 @@ def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: i
         return r.name.lower().startswith("corridor")
 
     def clear_pair(fixed, mover):
-        # compute minimal moves to place mover left/right/above/below fixed (exactly tangent)
+        # compute minimal moves to place mover left/right/above/below fixed (with min_gap)
         candidates = []
-        # push left of fixed (mover.x2 = fixed.x)
-        new_x = fixed.x - mover.w
+        # push left of fixed (mover.x2 = fixed.x - min_gap)
+        new_x = fixed.x - mover.w - min_gap
         if new_x >= 0:
             candidates.append((abs(mover.x - new_x), new_x, mover.y))
-        # push right of fixed (mover.x = fixed.x2)
-        new_x = fixed.x + fixed.w
+        # push right of fixed (mover.x = fixed.x2 + min_gap)
+        new_x = fixed.x + fixed.w + min_gap
         if new_x + mover.w <= brief.building_w:
             candidates.append((abs(new_x - mover.x), new_x, mover.y))
-        # push above fixed (mover.y2 = fixed.y)
-        new_y = fixed.y - mover.h
+        # push above fixed (mover.y2 = fixed.y - min_gap)
+        new_y = fixed.y - mover.h - min_gap
         if new_y >= 0:
             candidates.append((abs(mover.y - new_y), mover.x, new_y))
-        # push below fixed (mover.y = fixed.y2)
-        new_y = fixed.y + fixed.h
+        # push below fixed (mover.y = fixed.y2 + min_gap)
+        new_y = fixed.y + fixed.h + min_gap
         if new_y + mover.h <= brief.building_h:
             candidates.append((abs(new_y - mover.y), mover.x, new_y))
         if candidates:
-            # choose the smallest displacement first, then prefer axis with more penetration relief
             dist, nx, ny = min(candidates, key=lambda t: t[0])
             mover.x = min(max(nx, 0), max(0, brief.building_w - mover.w))
             mover.y = min(max(ny, 0), max(0, brief.building_h - mover.h))
@@ -280,16 +279,16 @@ def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: i
         )
 
     def push_out(inner, outer):
-        # Move contained rect to nearest outside side of outer
-        d_left = abs(inner.x - (outer.x - inner.w))
-        d_right = abs((outer.x + outer.w) - inner.x)
-        d_up = abs(inner.y - (outer.y - inner.h))
-        d_down = abs((outer.y + outer.h) - inner.y)
+        # Move contained rect to nearest outside side of outer (respect min_gap)
+        d_left = abs(inner.x - (outer.x - inner.w - min_gap))
+        d_right = abs((outer.x + outer.w + min_gap) - inner.x)
+        d_up = abs(inner.y - (outer.y - inner.h - min_gap))
+        d_down = abs((outer.y + outer.h + min_gap) - inner.y)
         choices = [
-            (d_left, outer.x - inner.w, inner.y),
-            (d_right, outer.x + outer.w, inner.y),
-            (d_up, inner.x, outer.y - inner.h),
-            (d_down, inner.x, outer.y + outer.h),
+            (d_left, outer.x - inner.w - min_gap, inner.y),
+            (d_right, outer.x + outer.w + min_gap, inner.y),
+            (d_up, inner.x, outer.y - inner.h - min_gap),
+            (d_down, inner.x, outer.y + outer.h + min_gap),
         ]
         dist, nx, ny = min(choices, key=lambda t: t[0])
         inner.x = min(max(nx, 0), max(0, brief.building_w - inner.w))
@@ -301,24 +300,19 @@ def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: i
         for i in range(len(layout.rooms)):
             for j in range(i + 1, len(layout.rooms)):
                 a = layout.rooms[i]; b = layout.rooms[j]
-                # Skip corridor pair
                 if is_corridor(a) and is_corridor(b):
                     continue
                 ox, oy = overlap(a, b)
                 if ox > 0 and oy > 0:
-                    # Handle strict containment first (move the contained one out)
                     if contains(a, b) and not is_corridor(a):
                         changed = push_out(a, b)
                     elif contains(b, a) and not is_corridor(b):
                         changed = push_out(b, a)
                     else:
-                        # Prefer to move the non-corridor room; otherwise move b
                         move_b = not is_corridor(b)
                         fixed, mover = (a, b) if move_b else (b, a)
-                        # Try to clear by minimal displacement while staying in envelope
                         changed = clear_pair(fixed, mover)
                         if not changed:
-                            # If mover couldn't move (bounded), try moving the other
                             changed = clear_pair(mover, fixed)
                     moved = moved or changed
         if not moved:
@@ -375,7 +369,7 @@ def has_overlap(layout: LayoutResult | dict) -> bool:
     return False
 
 
-def legalize_no_overlap(layout: LayoutResult | dict, brief: Brief | dict) -> LayoutResult:
+def legalize_no_overlap(layout: LayoutResult | dict, brief: Brief | dict, min_gap: int = 0) -> LayoutResult:
     """Re-pack rooms (keeping sizes) into rows to guarantee no overlaps.
     Preserves corridor position if present; other rooms are packed above/below.
     """
@@ -400,7 +394,7 @@ def legalize_no_overlap(layout: LayoutResult | dict, brief: Brief | dict) -> Lay
             if y + r.h > y0 + H:
                 continue  # no more space in this region
             r.x, r.y = x, y
-            x += r.w
+            x += r.w + min_gap
             row_h = max(row_h, r.h)
             placed.append(r)
         return placed
@@ -413,7 +407,7 @@ def legalize_no_overlap(layout: LayoutResult | dict, brief: Brief | dict) -> Lay
         top_space = pack_rows(others, 0, 0, brief.building_w, max(0, corridor.y))
         placed_ids = set(id(r) for r in top_space)
         rest = [r for r in others if id(r) not in placed_ids]
-        bottom_space = pack_rows(rest, 0, corridor.y + corridor.h, brief.building_w, max(0, brief.building_h - (corridor.y + corridor.h)))
+        bottom_space = pack_rows(rest, 0, corridor.y + corridor.h + min_gap, brief.building_w, max(0, brief.building_h - (corridor.y + corridor.h) - min_gap))
         # Update layout list order is irrelevant
         layout.rooms = [corridor] + top_space + bottom_space
     else:
@@ -428,7 +422,7 @@ def legalize_no_overlap(layout: LayoutResult | dict, brief: Brief | dict) -> Lay
 
 # Presentation / geometry polishing
 
-def snap_and_align(layout: LayoutResult | dict, brief: Brief | dict, grid: int = 10, margin: int = 20) -> LayoutResult:
+def snap_and_align(layout: LayoutResult | dict, brief: Brief | dict, grid: int = 10, margin: int = 20, min_gap: int = 0) -> LayoutResult:
     """Snap all rectangles to grid, enforce outer margin, and align rows/columns.
     Does not change corridor size/position beyond snapping.
     """
@@ -448,35 +442,59 @@ def snap_and_align(layout: LayoutResult | dict, brief: Brief | dict, grid: int =
     for r in layout.rooms:
         r.x = min(max(r.x, margin), max(0, brief.building_w - margin - r.w))
         r.y = min(max(r.y, margin), max(0, brief.building_h - margin - r.h))
-    # align rows (by top y) and columns (by left x)
-    ys = {}
-    xs = {}
-    for r in layout.rooms:
-        ys.setdefault(r.y, []).append(r)
-        xs.setdefault(r.x, []).append(r)
-    # merge keys within grid tolerance
-    def merge_keys(keys):
-        keys = sorted(keys)
-        bands = []
-        for k in keys:
-            if not bands or abs(k - bands[-1][-1]) > grid:
-                bands.append([k])
+    # align rows (by top y) and columns (by left x) in an overlap-safe way
+    rooms = [r for r in layout.rooms if not r.name.lower().startswith("corridor")]
+    # helper intervals
+    def overlap_len(a0, a1, b0, b1):
+        return min(a1, b1) - max(a0, b0)
+    # group by y bands
+    bands_y = {}
+    for r in rooms:
+        key = int(round(r.y / grid) * grid)
+        bands_y.setdefault(key, []).append(r)
+    # row pass: only align those with no horizontal overlap; then sweep-pack with min_gap
+    for key, group in bands_y.items():
+        group.sort(key=lambda r: r.x)
+        # filter into chains with no horizontal overlap
+        chain = []
+        last_x1 = -1e9
+        chains = []
+        for r in group:
+            if r.x >= last_x1:
+                chain.append(r)
+                last_x1 = r.x + r.w
             else:
-                bands[-1].append(k)
-        reps = [int(round(sum(b) / len(b))) for b in bands]
-        return reps, bands
-    # rows
-    reps_y, bands_y = merge_keys(list(ys.keys()))
-    for rep, band in zip(reps_y, bands_y):
-        for k in band:
-            for r in ys[k]:
-                r.y = rep
-    # columns
-    reps_x, bands_x = merge_keys(list(xs.keys()))
-    for rep, band in zip(reps_x, bands_x):
-        for k in band:
-            for r in xs[k]:
-                r.x = rep
+                chains.append(chain); chain = [r]; last_x1 = r.x + r.w
+        if chain: chains.append(chain)
+        for ch in chains:
+            # align y to band key and pack left->right
+            cx = min(r.x for r in ch)
+            for r in ch:
+                r.y = key
+                r.x = max(cx, margin)
+                cx = r.x + r.w + min_gap
+    # column pass: group by x and pack top->bottom for non-vertical-overlapping items
+    bands_x = {}
+    for r in rooms:
+        key = int(round(r.x / grid) * grid)
+        bands_x.setdefault(key, []).append(r)
+    for key, group in bands_x.items():
+        group.sort(key=lambda r: r.y)
+        chain = []
+        last_y1 = -1e9
+        chains = []
+        for r in group:
+            if r.y >= last_y1:
+                chain.append(r); last_y1 = r.y + r.h
+            else:
+                chains.append(chain); chain = [r]; last_y1 = r.y + r.h
+        if chain: chains.append(chain)
+        for ch in chains:
+            cy = min(r.y for r in ch)
+            for r in ch:
+                r.x = key
+                r.y = max(cy, margin)
+                cy = r.y + r.h + min_gap
 
     return layout
 

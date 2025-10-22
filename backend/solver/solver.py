@@ -92,11 +92,13 @@ class LayoutSolver:
             layout = resolve_overlaps(layout, brief)
             layout = keep_corridor_clear(layout, brief)
 
-        # Absolute last resort: legalize if any overlaps remain
+        # Presentation snap/align and margining (overlap-safe)
+        layout = snap_and_align(layout, brief, grid=10, margin=20, min_gap=20)
+        # Final clean: resolve tiny overlaps with a gap
+        layout = resolve_overlaps(layout, brief, min_gap=20)
+        layout = keep_corridor_clear(layout, brief)
         if has_overlap(layout):
-            layout = legalize_no_overlap(layout, brief)
-        # Presentation snap/align and margining
-        layout = snap_and_align(layout, brief)
+            layout = legalize_no_overlap(layout, brief, min_gap=20)
 
         return layout.model_dump()
 
