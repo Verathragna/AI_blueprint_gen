@@ -40,9 +40,25 @@ class LayoutSolver:
         use_corr = private_count >= min_priv
 
         if use_corr:
-            # Insert corridor layout heuristically, then refine
+            # Heuristic initial corridor placement
             from backend.solver.packing import pack_with_corridor
-            layout = pack_with_corridor(brief)
+            init = pack_with_corridor(brief)
+            # Extract corridor rect
+            cor = next((r for r in init.rooms if r.name.lower().startswith('corridor')), None)
+            if cor is not None:
+                from backend.solver.cpsat import solve_with_corridor
+                cp_layout = solve_with_corridor(
+                    brief,
+                    {"x": cor.x, "y": cor.y, "w": cor.w, "h": cor.h},
+                    seed=init,
+                    time_limit_s=1.0,
+                )
+                if cp_layout is not None:
+                    layout = cp_layout
+                else:
+                    layout = init
+            else:
+                layout = init
             from backend.solver.refine import attract_to_corridor, ensure_corridor_overlap
             layout = attract_to_corridor(layout, brief)
             layout = ensure_corridor_overlap(layout, brief)
