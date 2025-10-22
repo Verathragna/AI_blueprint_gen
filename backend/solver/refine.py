@@ -274,6 +274,40 @@ def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: i
     return layout
 
 
+def keep_corridor_clear(layout: LayoutResult | dict, brief: Brief | dict) -> LayoutResult:
+    """Force all rooms out of the corridor band (no intersections).
+
+    Deterministic cleanup used after heuristic moves; never moves the corridor, only others.
+    """
+    if not isinstance(layout, LayoutResult):
+        layout = LayoutResult(**layout)
+    if not isinstance(brief, Brief):
+        brief = Brief(**brief)
+    corridor = next((r for r in layout.rooms if r.name.lower().startswith("corridor")), None)
+    if corridor is None:
+        return layout
+
+    def intersects(a, b):
+        return not (a.x + a.w <= b.x or b.x + b.w <= a.x or a.y + a.h <= b.y or b.y + b.h <= a.y)
+
+    cy_mid = corridor.y + corridor.h // 2
+    for r in layout.rooms:
+        if r is corridor:
+            continue
+        if intersects(r, corridor):
+            # choose above or below based on center
+            rc_mid = r.y + r.h // 2
+            if rc_mid <= cy_mid:
+                # move above
+                r.y = max(0, corridor.y - r.h)
+            else:
+                # move below
+                r.y = min(corridor.y + corridor.h, max(0, brief.building_h - r.h))
+            # clamp horizontally too (keep as-is)
+            r.x = min(max(r.x, 0), max(0, brief.building_w - r.w))
+    return layout
+
+
 def add_corridor(layout: LayoutResult | dict, brief: Brief | dict) -> LayoutResult:
     if not isinstance(layout, LayoutResult):
         layout = LayoutResult(**layout)
