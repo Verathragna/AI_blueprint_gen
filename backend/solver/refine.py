@@ -360,6 +360,74 @@ def keep_corridor_clear(layout: LayoutResult | dict, brief: Brief | dict) -> Lay
     return layout
 
 
+def has_overlap(layout: LayoutResult | dict) -> bool:
+    if not isinstance(layout, LayoutResult):
+        layout = LayoutResult(**layout)
+    n = len(layout.rooms)
+    for i in range(n):
+        a = layout.rooms[i]
+        for j in range(i + 1, n):
+            b = layout.rooms[j]
+            ox = min(a.x + a.w, b.x + b.w) - max(a.x, b.x)
+            oy = min(a.y + a.h, b.y + b.h) - max(a.y, b.y)
+            if ox > 0 and oy > 0:
+                return True
+    return False
+
+
+def legalize_no_overlap(layout: LayoutResult | dict, brief: Brief | dict) -> LayoutResult:
+    """Re-pack rooms (keeping sizes) into rows to guarantee no overlaps.
+    Preserves corridor position if present; other rooms are packed above/below.
+    """
+    if not isinstance(layout, LayoutResult):
+        layout = LayoutResult(**layout)
+    if not isinstance(brief, Brief):
+        brief = Brief(**brief)
+
+    rooms = [r for r in layout.rooms]
+    corridor = next((r for r in rooms if r.name.lower().startswith("corridor")), None)
+
+    def pack_rows(candidates, x0, y0, W, H):
+        x = x0; y = y0; row_h = 0
+        placed = []
+        for r in candidates:
+            if r.w > W or r.h > H:
+                continue  # cannot fit region; skip, will try elsewhere
+            if x + r.w > x0 + W:
+                x = x0
+                y += row_h
+                row_h = 0
+            if y + r.h > y0 + H:
+                continue  # no more space in this region
+            r.x, r.y = x, y
+            x += r.w
+            row_h = max(row_h, r.h)
+            placed.append(r)
+        return placed
+
+    if corridor:
+        others = [r for r in rooms if r is not corridor]
+        # Try pack above then remaining below
+        top = []
+        bottom = []
+        # sort largest first to reduce fragmentation
+        others.sort(key=lambda r: r.w * r.h, reverse=True)
+        top_space = pack_rows(others, 0, 0, brief.building_w, max(0, corridor.y))
+        placed_ids = set(id(r) for r in top_space)
+        rest = [r for r in others if id(r) not in placed_ids]
+        bottom_space = pack_rows(rest, 0, corridor.y + corridor.h, brief.building_w, max(0, brief.building_h - (corridor.y + corridor.h)))
+        # Update layout list order is irrelevant
+        layout.rooms = [corridor] + top_space + bottom_space
+    else:
+        # Simple whole-envelope pack
+        rs = [r for r in rooms]
+        rs.sort(key=lambda r: r.w * r.h, reverse=True)
+        packed = pack_rows(rs, 0, 0, brief.building_w, brief.building_h)
+        layout.rooms = packed
+
+    return layout
+
+
 def add_corridor(layout: LayoutResult | dict, brief: Brief | dict) -> LayoutResult:
     if not isinstance(layout, LayoutResult):
         layout = LayoutResult(**layout)
