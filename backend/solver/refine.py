@@ -246,31 +246,55 @@ def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: i
         return r.name.lower().startswith("corridor")
 
     def clear_pair(fixed, mover):
-        # compute minimal moves to place mover left/right/above/below fixed
+        # compute minimal moves to place mover left/right/above/below fixed (exactly tangent)
         candidates = []
-        # push left of fixed
+        # push left of fixed (mover.x2 = fixed.x)
         new_x = fixed.x - mover.w
         if new_x >= 0:
             candidates.append((abs(mover.x - new_x), new_x, mover.y))
-        # push right of fixed
+        # push right of fixed (mover.x = fixed.x2)
         new_x = fixed.x + fixed.w
         if new_x + mover.w <= brief.building_w:
             candidates.append((abs(new_x - mover.x), new_x, mover.y))
-        # push above fixed
+        # push above fixed (mover.y2 = fixed.y)
         new_y = fixed.y - mover.h
         if new_y >= 0:
             candidates.append((abs(mover.y - new_y), mover.x, new_y))
-        # push below fixed
+        # push below fixed (mover.y = fixed.y2)
         new_y = fixed.y + fixed.h
         if new_y + mover.h <= brief.building_h:
             candidates.append((abs(new_y - mover.y), mover.x, new_y))
         if candidates:
-            # choose the smallest displacement
+            # choose the smallest displacement first, then prefer axis with more penetration relief
             dist, nx, ny = min(candidates, key=lambda t: t[0])
             mover.x = min(max(nx, 0), max(0, brief.building_w - mover.w))
             mover.y = min(max(ny, 0), max(0, brief.building_h - mover.h))
             return True
         return False
+
+    def contains(inner, outer):
+        return (
+            inner.x >= outer.x and inner.y >= outer.y and
+            inner.x + inner.w <= outer.x + outer.w and
+            inner.y + inner.h <= outer.y + outer.h
+        )
+
+    def push_out(inner, outer):
+        # Move contained rect to nearest outside side of outer
+        d_left = abs(inner.x - (outer.x - inner.w))
+        d_right = abs((outer.x + outer.w) - inner.x)
+        d_up = abs(inner.y - (outer.y - inner.h))
+        d_down = abs((outer.y + outer.h) - inner.y)
+        choices = [
+            (d_left, outer.x - inner.w, inner.y),
+            (d_right, outer.x + outer.w, inner.y),
+            (d_up, inner.x, outer.y - inner.h),
+            (d_down, inner.x, outer.y + outer.h),
+        ]
+        dist, nx, ny = min(choices, key=lambda t: t[0])
+        inner.x = min(max(nx, 0), max(0, brief.building_w - inner.w))
+        inner.y = min(max(ny, 0), max(0, brief.building_h - inner.h))
+        return True
 
     for _ in range(passes):
         moved = False
@@ -282,14 +306,20 @@ def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: i
                     continue
                 ox, oy = overlap(a, b)
                 if ox > 0 and oy > 0:
-                    # Prefer to move the non-corridor room; otherwise move b
-                    move_b = not is_corridor(b)
-                    fixed, mover = (a, b) if move_b else (b, a)
-                    # Try to clear by minimal displacement while staying in envelope
-                    changed = clear_pair(fixed, mover)
-                    if not changed:
-                        # If mover couldn't move (bounded), try moving the other
-                        changed = clear_pair(mover, fixed)
+                    # Handle strict containment first (move the contained one out)
+                    if contains(a, b) and not is_corridor(a):
+                        changed = push_out(a, b)
+                    elif contains(b, a) and not is_corridor(b):
+                        changed = push_out(b, a)
+                    else:
+                        # Prefer to move the non-corridor room; otherwise move b
+                        move_b = not is_corridor(b)
+                        fixed, mover = (a, b) if move_b else (b, a)
+                        # Try to clear by minimal displacement while staying in envelope
+                        changed = clear_pair(fixed, mover)
+                        if not changed:
+                            # If mover couldn't move (bounded), try moving the other
+                            changed = clear_pair(mover, fixed)
                     moved = moved or changed
         if not moved:
             break
