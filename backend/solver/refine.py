@@ -408,8 +408,6 @@ def legalize_no_overlap(layout: LayoutResult | dict, brief: Brief | dict) -> Lay
     if corridor:
         others = [r for r in rooms if r is not corridor]
         # Try pack above then remaining below
-        top = []
-        bottom = []
         # sort largest first to reduce fragmentation
         others.sort(key=lambda r: r.w * r.h, reverse=True)
         top_space = pack_rows(others, 0, 0, brief.building_w, max(0, corridor.y))
@@ -424,6 +422,61 @@ def legalize_no_overlap(layout: LayoutResult | dict, brief: Brief | dict) -> Lay
         rs.sort(key=lambda r: r.w * r.h, reverse=True)
         packed = pack_rows(rs, 0, 0, brief.building_w, brief.building_h)
         layout.rooms = packed
+
+    return layout
+
+
+# Presentation / geometry polishing
+
+def snap_and_align(layout: LayoutResult | dict, brief: Brief | dict, grid: int = 10, margin: int = 20) -> LayoutResult:
+    """Snap all rectangles to grid, enforce outer margin, and align rows/columns.
+    Does not change corridor size/position beyond snapping.
+    """
+    if not isinstance(layout, LayoutResult):
+        layout = LayoutResult(**layout)
+    if not isinstance(brief, Brief):
+        brief = Brief(**brief)
+
+    def snap(v: int) -> int:
+        r = int(round(v / grid) * grid)
+        return max(0, r)
+
+    # snap
+    for r in layout.rooms:
+        r.x = snap(r.x); r.y = snap(r.y); r.w = max(grid, snap(r.w)); r.h = max(grid, snap(r.h))
+    # outer margin
+    for r in layout.rooms:
+        r.x = min(max(r.x, margin), max(0, brief.building_w - margin - r.w))
+        r.y = min(max(r.y, margin), max(0, brief.building_h - margin - r.h))
+    # align rows (by top y) and columns (by left x)
+    ys = {}
+    xs = {}
+    for r in layout.rooms:
+        ys.setdefault(r.y, []).append(r)
+        xs.setdefault(r.x, []).append(r)
+    # merge keys within grid tolerance
+    def merge_keys(keys):
+        keys = sorted(keys)
+        bands = []
+        for k in keys:
+            if not bands or abs(k - bands[-1][-1]) > grid:
+                bands.append([k])
+            else:
+                bands[-1].append(k)
+        reps = [int(round(sum(b) / len(b))) for b in bands]
+        return reps, bands
+    # rows
+    reps_y, bands_y = merge_keys(list(ys.keys()))
+    for rep, band in zip(reps_y, bands_y):
+        for k in band:
+            for r in ys[k]:
+                r.y = rep
+    # columns
+    reps_x, bands_x = merge_keys(list(xs.keys()))
+    for rep, band in zip(reps_x, bands_x):
+        for k in band:
+            for r in xs[k]:
+                r.x = rep
 
     return layout
 

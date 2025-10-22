@@ -7,7 +7,7 @@ except Exception:  # pragma: no cover - allow working without OR-Tools installed
     cp_model = None
 
 from backend.models.schema import Brief, LayoutResult, PlacedRoom, RoomSpec
-from backend.solver.refine import add_corridor, ensure_connectivity, keep_corridor_clear, resolve_overlaps, has_overlap, legalize_no_overlap
+from backend.solver.refine import add_corridor, ensure_connectivity, keep_corridor_clear, resolve_overlaps, has_overlap, legalize_no_overlap, snap_and_align
 from backend.solver.cpsat import solve_rect_pack
 from backend.solver.packing import pack_next_fit, pack_with_hub
 
@@ -95,6 +95,8 @@ class LayoutSolver:
         # Absolute last resort: legalize if any overlaps remain
         if has_overlap(layout):
             layout = legalize_no_overlap(layout, brief)
+        # Presentation snap/align and margining
+        layout = snap_and_align(layout, brief)
 
         return layout.model_dump()
 
