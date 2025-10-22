@@ -59,17 +59,19 @@ class LayoutSolver:
                     layout = init
             else:
                 layout = init
-            from backend.solver.refine import attract_to_corridor, ensure_corridor_overlap
+            from backend.solver.refine import attract_to_corridor, ensure_corridor_overlap, resolve_overlaps
             layout = attract_to_corridor(layout, brief)
             layout = ensure_corridor_overlap(layout, brief)
+            layout = resolve_overlaps(layout, brief)
         else:
             # Optionally add corridor if requested
             layout = add_corridor(layout, brief)
             # Ensure connectivity (snap isolated rooms)
             layout = ensure_connectivity(layout, brief)
             # Attraction to hub
-            from backend.solver.refine import attract_to_hub
+            from backend.solver.refine import attract_to_hub, resolve_overlaps
             layout = attract_to_hub(layout, brief)
+            layout = resolve_overlaps(layout, brief)
 
         # Try CP-SAT if available; fall back to heuristic result
         cp_layout = None if use_corr else solve_rect_pack(brief, layout)

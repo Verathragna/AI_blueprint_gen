@@ -231,6 +231,49 @@ def ensure_corridor_overlap(layout: LayoutResult | dict, brief: Brief | dict) ->
     return layout
 
 
+def resolve_overlaps(layout: LayoutResult | dict, brief: Brief | dict, passes: int = 8) -> LayoutResult:
+    if not isinstance(layout, LayoutResult):
+        layout = LayoutResult(**layout)
+    if not isinstance(brief, Brief):
+        brief = Brief(**brief)
+
+    def overlap(a, b):
+        ox = min(a.x + a.w, b.x + b.w) - max(a.x, b.x)
+        oy = min(a.y + a.h, b.y + b.h) - max(a.y, b.y)
+        return ox, oy
+
+    def is_corridor(r):
+        return r.name.lower().startswith("corridor")
+
+    for _ in range(passes):
+        moved = False
+        for i in range(len(layout.rooms)):
+            for j in range(i + 1, len(layout.rooms)):
+                a = layout.rooms[i]; b = layout.rooms[j]
+                # Skip corridor as a mover
+                if is_corridor(a) and is_corridor(b):
+                    continue
+                ox, oy = overlap(a, b)
+                if ox > 0 and oy > 0:
+                    # choose which to move: never move corridor; else move b
+                    target = b if not is_corridor(b) else a
+                    # separate along smaller penetration
+                    if ox < oy:
+                        if target.x < (a.x if target is b else b.x):
+                            target.x = max(0, target.x - ox)
+                        else:
+                            target.x = min(target.x + ox, max(0, brief.building_w - target.w))
+                    else:
+                        if target.y < (a.y if target is b else b.y):
+                            target.y = max(0, target.y - oy)
+                        else:
+                            target.y = min(target.y + oy, max(0, brief.building_h - target.h))
+                    moved = True
+        if not moved:
+            break
+    return layout
+
+
 def add_corridor(layout: LayoutResult | dict, brief: Brief | dict) -> LayoutResult:
     if not isinstance(layout, LayoutResult):
         layout = LayoutResult(**layout)
