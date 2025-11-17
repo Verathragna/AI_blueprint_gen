@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400.0" height="1000.0" viewBox="0 0 1400.0 1000.0">
+<g fill="none" stroke="#222" stroke-width="2">
+<rect x="680.0" y="320.0" width="370.0" height="380.0" stroke="#333" fill="none" />
+<text x="865.0" y="510.0" font-size="24" text-anchor="middle" fill="#555">living</text>
+<rect x="720.0" y="30.0" width="300.0" height="270.0" stroke="#333" fill="none" />
+<text x="870.0" y="165.0" font-size="24" text-anchor="middle" fill="#555">kitchen</text>
+<rect x="0.0" y="350.0" width="320.0" height="320.0" stroke="#333" fill="none" />
+<text x="160.0" y="510.0" font-size="24" text-anchor="middle" fill="#555">bed1</text>
+<rect x="-60.0" y="-90.0" width="120.0" height="1200.0" stroke="#07a" />
+<rect x="340.0" y="350.0" width="320.0" height="320.0" stroke="#333" fill="none" />
+<text x="500.0" y="510.0" font-size="24" text-anchor="middle" fill="#555">bed2</text>
+<rect x="360.0" y="680.0" width="300.0" height="300.0" stroke="#333" fill="none" />
+<text x="510.0" y="830.0" font-size="24" text-anchor="middle" fill="#555">bed3</text>
+<rect x="780.0" y="700.0" width="160.0" height="200.0" stroke="#333" fill="none" />
+<text x="860.0" y="800.0" font-size="24" text-anchor="middle" fill="#555">bath1</text>
+<rect x="980.0" y="700.0" width="160.0" height="200.0" stroke="#333" fill="none" />
+<text x="1060.0" y="800.0" font-size="24" text-anchor="middle" fill="#555">bath2</text>
+</g>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900.0" height="1200.0" viewBox="0 0 900.0 1200.0">
+<g fill="none" stroke="#222" stroke-width="2">
+<rect x="345.0" y="289.0" width="332.0" height="308.0" stroke="#333" fill="none" />
+<text x="511.0" y="443.0" font-size="24" text-anchor="middle" fill="#555">living</text>
+<rect x="115.0" y="301.0" width="248.0" height="282.0" stroke="#333" fill="none" />
+<text x="239.0" y="442.0" font-size="24" text-anchor="middle" fill="#555">kitchen</text>
+<rect x="365.0" y="629.0" width="268.0" height="292.0" stroke="#333" fill="none" />
+<text x="499.0" y="775.0" font-size="24" text-anchor="middle" fill="#555">bed1</text>
+<rect x="75.0" y="11.0" width="292.0" height="268.0" stroke="#333" fill="none" />
+<text x="221.0" y="145.0" font-size="24" text-anchor="middle" fill="#555">bed2</text>
+<rect x="665.0" y="349.0" width="138.0" height="192.0" stroke="#333" fill="none" />
+<text x="734.0" y="445.0" font-size="24" text-anchor="middle" fill="#555">bath</text>
+</g>
+</svg>

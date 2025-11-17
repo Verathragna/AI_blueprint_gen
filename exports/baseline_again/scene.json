@@ -1,0 +1,488 @@
+{
+  "id": "b4ef754d-1c32-439f-ba1e-d2e5d3ccc4a4",
+  "typ": "building",
+  "layer": "arch",
+  "meta": {},
+  "unit_system": "metric_mm",
+  "rounding": "nearest_mm",
+  "width": 1200.0,
+  "height": 800.0,
+  "floors": [
+    {
+      "id": "df965710-10b2-493c-8941-bf3232690810",
+      "typ": "floor",
+      "layer": "arch",
+      "meta": {},
+      "elevation": 0.0,
+      "spaces": [
+        {
+          "id": "d8330b75-bada-4c16-8b9c-04601530b447",
+          "typ": "space",
+          "layer": "arch",
+          "meta": {},
+          "name": "living",
+          "rect": {
+            "x": 0.0,
+            "y": 0.0,
+            "w": 350.0,
+            "h": 350.0
+          },
+          "boundaries": [
+            {
+              "id": "d89a8d33-107a-4587-9932-265ac8cddbfa",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "b": {
+                "x": 350.0,
+                "y": 0.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "eb06cbff-bd4d-4321-9e5d-523bb4444156",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 350.0,
+                "y": 0.0
+              },
+              "b": {
+                "x": 350.0,
+                "y": 350.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "2ea5372d-27fc-4a17-a1dc-115b68aa9806",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 350.0,
+                "y": 350.0
+              },
+              "b": {
+                "x": 0.0,
+                "y": 350.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "913b7731-5c5b-41ba-b3f3-1fd4e7d9ffc9",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 0.0,
+                "y": 350.0
+              },
+              "b": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "thickness": 100.0
+            }
+          ],
+          "openings": [
+            {
+              "id": "037d0164-51e9-465a-aabd-7bfbd52b1939",
+              "typ": "opening",
+              "layer": "arch",
+              "meta": {},
+              "opening_type": "door",
+              "at": {
+                "x": 135.0,
+                "y": 350.0
+              },
+              "w": 90.0,
+              "h": 2000.0
+            },
+            {
+              "id": "2b910a1f-d97a-42aa-9060-eb544fa81c07",
+              "typ": "opening",
+              "layer": "arch",
+              "meta": {},
+              "opening_type": "window",
+              "at": {
+                "x": 175.0,
+                "y": 0.0
+              },
+              "w": 120.0,
+              "h": 1200.0
+            },
+            {
+              "id": "1d218675-bf13-410d-a88e-417fe06944e7",
+              "typ": "opening",
+              "layer": "arch",
+              "meta": {},
+              "opening_type": "window",
+              "at": {
+                "x": 0.0,
+                "y": 175.0
+              },
+              "w": 120.0,
+              "h": 1200.0
+            }
+          ],
+          "fixtures": []
+        },
+        {
+          "id": "78dfbb1e-4d2a-4c76-9c54-69ce8c98e8bb",
+          "typ": "space",
+          "layer": "arch",
+          "meta": {},
+          "name": "bed1",
+          "rect": {
+            "x": 370.0,
+            "y": 0.0,
+            "w": 300.0,
+            "h": 300.0
+          },
+          "boundaries": [
+            {
+              "id": "58eb2c38-e862-4086-8a81-09e96e56cdec",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 370.0,
+                "y": 0.0
+              },
+              "b": {
+                "x": 670.0,
+                "y": 0.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "6009f58e-3326-4e13-b6fc-dbaf1251f916",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 670.0,
+                "y": 0.0
+              },
+              "b": {
+                "x": 670.0,
+                "y": 300.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "a9826a36-1e85-41a8-a464-7c5486502811",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 670.0,
+                "y": 300.0
+              },
+              "b": {
+                "x": 370.0,
+                "y": 300.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "12a95e04-3eea-4022-a110-57f167be1eec",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 370.0,
+                "y": 300.0
+              },
+              "b": {
+                "x": 370.0,
+                "y": 0.0
+              },
+              "thickness": 100.0
+            }
+          ],
+          "openings": [
+            {
+              "id": "b895ec27-581a-43c6-b99b-577d2254f5d8",
+              "typ": "opening",
+              "layer": "arch",
+              "meta": {},
+              "opening_type": "window",
+              "at": {
+                "x": 520.0,
+                "y": 0.0
+              },
+              "w": 120.0,
+              "h": 1200.0
+            }
+          ],
+          "fixtures": []
+        },
+        {
+          "id": "f3d077f4-fbad-4a94-bcc4-375967330a24",
+          "typ": "space",
+          "layer": "arch",
+          "meta": {},
+          "name": "bed2",
+          "rect": {
+            "x": 690.0,
+            "y": 0.0,
+            "w": 300.0,
+            "h": 300.0
+          },
+          "boundaries": [
+            {
+              "id": "c17c0fd0-88b6-405c-8909-1ca10be1c385",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 690.0,
+                "y": 0.0
+              },
+              "b": {
+                "x": 990.0,
+                "y": 0.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "f292946e-a6a4-4f7e-95fa-5ce6cbd416a6",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 990.0,
+                "y": 0.0
+              },
+              "b": {
+                "x": 990.0,
+                "y": 300.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "3857c76f-929e-4725-8731-141d2b21c6c9",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 990.0,
+                "y": 300.0
+              },
+              "b": {
+                "x": 690.0,
+                "y": 300.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "566295d5-39af-451e-a42d-cd045c3c20cc",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 690.0,
+                "y": 300.0
+              },
+              "b": {
+                "x": 690.0,
+                "y": 0.0
+              },
+              "thickness": 100.0
+            }
+          ],
+          "openings": [
+            {
+              "id": "6ad05e03-7f74-4743-ad3e-5e606fc5f647",
+              "typ": "opening",
+              "layer": "arch",
+              "meta": {},
+              "opening_type": "window",
+              "at": {
+                "x": 840.0,
+                "y": 0.0
+              },
+              "w": 120.0,
+              "h": 1200.0
+            }
+          ],
+          "fixtures": []
+        },
+        {
+          "id": "9deb0dd8-c634-4fbd-af6e-09c5debeecd3",
+          "typ": "space",
+          "layer": "arch",
+          "meta": {},
+          "name": "kitchen",
+          "rect": {
+            "x": 0.0,
+            "y": 350.0,
+            "w": 270.0,
+            "h": 280.0
+          },
+          "boundaries": [
+            {
+              "id": "962502cd-b1e3-44d2-9390-281ea46b434f",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 0.0,
+                "y": 350.0
+              },
+              "b": {
+                "x": 270.0,
+                "y": 350.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "a277d793-abb2-4ae9-8905-0dee16ab6ff6",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 270.0,
+                "y": 350.0
+              },
+              "b": {
+                "x": 270.0,
+                "y": 630.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "4885b182-fe90-4404-8404-7055396371b1",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 270.0,
+                "y": 630.0
+              },
+              "b": {
+                "x": 0.0,
+                "y": 630.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "5eadd163-9e9d-4ba5-b0d4-29dbc65eee90",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 0.0,
+                "y": 630.0
+              },
+              "b": {
+                "x": 0.0,
+                "y": 350.0
+              },
+              "thickness": 100.0
+            }
+          ],
+          "openings": [
+            {
+              "id": "27610411-0869-4793-986d-1c15c5d8e1c2",
+              "typ": "opening",
+              "layer": "arch",
+              "meta": {},
+              "opening_type": "window",
+              "at": {
+                "x": 0.0,
+                "y": 490.0
+              },
+              "w": 120.0,
+              "h": 1200.0
+            }
+          ],
+          "fixtures": []
+        },
+        {
+          "id": "46293726-905c-41bd-900a-40106346cf52",
+          "typ": "space",
+          "layer": "arch",
+          "meta": {},
+          "name": "bath",
+          "rect": {
+            "x": 290.0,
+            "y": 350.0,
+            "w": 150.0,
+            "h": 180.0
+          },
+          "boundaries": [
+            {
+              "id": "2b56ae09-d0af-460f-8f99-5edbbdc1ea46",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 290.0,
+                "y": 350.0
+              },
+              "b": {
+                "x": 440.0,
+                "y": 350.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "0ea6c419-2a60-4366-8e06-5816b3595ee4",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 440.0,
+                "y": 350.0
+              },
+              "b": {
+                "x": 440.0,
+                "y": 530.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "56845119-8cb0-4698-8cf5-c33e1cdd607f",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 440.0,
+                "y": 530.0
+              },
+              "b": {
+                "x": 290.0,
+                "y": 530.0
+              },
+              "thickness": 100.0
+            },
+            {
+              "id": "f756217d-215e-4eb3-a57c-00b78a3c1758",
+              "typ": "boundary",
+              "layer": "arch",
+              "meta": {},
+              "a": {
+                "x": 290.0,
+                "y": 530.0
+              },
+              "b": {
+                "x": 290.0,
+                "y": 350.0
+              },
+              "thickness": 100.0
+            }
+          ],
+          "openings": [],
+          "fixtures": []
+        }
+      ]
+    }
+  ]
+}

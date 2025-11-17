@@ -10,6 +10,7 @@ from backend.models.schema import Brief, LayoutResult, PlacedRoom, RoomSpec
 from backend.solver.refine import add_corridor, ensure_connectivity, keep_corridor_clear, resolve_overlaps, has_overlap, legalize_no_overlap, snap_and_align
 from backend.solver.cpsat import solve_rect_pack
 from backend.solver.packing import pack_next_fit, pack_with_hub
+from backend.solver.grid import solve_on_grid
 
 
 class LayoutSolver:
@@ -26,62 +27,44 @@ class LayoutSolver:
             brief = Brief(**brief)
 
         # If seed provided, start from it (clamped to envelope)
+        from_grid = False
         if seed:
             layout = LayoutResult(**seed)
         else:
-            # improved heuristic packer with hub-first placement
-            layout = pack_with_hub(brief)
+            # Primary grid-based planner (1ft discretisation)
+            layout = solve_on_grid(brief)
+            from_grid = bool(layout.rooms)
+            # fall back if grid left too many rooms unplaced
+            if layout.dropped:
+                fallback = pack_with_hub(brief)
+                def count_program_rooms(result: LayoutResult) -> int:
+                    return len([r for r in result.rooms if not r.name.lower().startswith("corridor")])
+
+                if count_program_rooms(fallback) >= count_program_rooms(layout):
+                    layout = fallback
+                    from_grid = False
             if not layout.rooms:
                 layout = pack_next_fit(brief)
+                from_grid = False
 
         # Corridor policy
-        private_count = len([s for s in (brief.rooms if isinstance(brief, Brief) else Brief(**brief).rooms) if s.name.lower().startswith('bed') or s.name.lower().startswith('bath')])
-        min_priv = (brief.connectivity.min_private_for_corridor if isinstance(brief, Brief) and brief.connectivity else 3)
-        use_corr = private_count >= min_priv
+        if not from_grid:
+            if brief.hard and brief.hard.min_corridor_width:
+                layout = add_corridor(layout, brief)
 
-        if use_corr:
-            # Heuristic initial corridor placement
-            from backend.solver.packing import pack_with_corridor
-            init = pack_with_corridor(brief)
-            # Extract corridor rect
-            cor = next((r for r in init.rooms if r.name.lower().startswith('corridor')), None)
-            if cor is not None:
-                from backend.solver.cpsat import solve_with_corridor
-                cp_layout = solve_with_corridor(
-                    brief,
-                    {"x": cor.x, "y": cor.y, "w": cor.w, "h": cor.h},
-                    seed=init,
-                    time_limit_s=1.0,
-                    y_band=(max(0, cor.y-200), min((brief.building_h - cor.h), cor.y+200))
-                )
-                if cp_layout is None:
-                    # try full-height band as fallback attempt (still CP-SAT), do not revert to heuristic silently
-                    cp_layout = solve_with_corridor(
-                        brief,
-                        {"x": cor.x, "y": cor.y, "w": cor.w, "h": cor.h},
-                        seed=init,
-                        time_limit_s=1.5,
-                        y_band=(0, max(0, brief.building_h - cor.h))
-                    )
-                layout = cp_layout if cp_layout is not None else init
-            else:
-                layout = init
-            # After CP-SAT, avoid heuristic moves that can overlap; just run a safety resolver
-            layout = resolve_overlaps(layout, brief)
-            layout = keep_corridor_clear(layout, brief)
-        else:
-            # Optionally add corridor if requested
-            layout = add_corridor(layout, brief)
             # Ensure connectivity (snap isolated rooms)
             layout = ensure_connectivity(layout, brief)
-            # Attraction to hub
+            # Attraction to hub for clustering
             from backend.solver.refine import attract_to_hub
+
             layout = attract_to_hub(layout, brief)
             layout = resolve_overlaps(layout, brief)
             layout = keep_corridor_clear(layout, brief)
 
         # Try CP-SAT if available; fall back to heuristic result
-        cp_layout = None if use_corr else solve_rect_pack(brief, layout)
+        cp_layout = None
+        if not from_grid:
+            cp_layout = solve_rect_pack(brief, layout)
         if cp_layout is not None:
             layout = cp_layout
             # post-process connectivity again just in case and attract
@@ -93,7 +76,8 @@ class LayoutSolver:
             layout = keep_corridor_clear(layout, brief)
 
         # Presentation snap/align and margining (overlap-safe)
-        layout = snap_and_align(layout, brief, grid=10, margin=20, min_gap=20)
+        if not from_grid:
+            layout = snap_and_align(layout, brief, grid=10, margin=20, min_gap=20)
         # Final clean: resolve tiny overlaps with a gap
         layout = resolve_overlaps(layout, brief, min_gap=20)
         layout = keep_corridor_clear(layout, brief)

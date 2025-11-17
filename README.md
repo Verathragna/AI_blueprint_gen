@@ -5,6 +5,7 @@ Generate code-compliant, dimensioned floor plans from user parameters. MVP focus
 ## Quick start
 - Backend (FastAPI): see `backend/` and `pyproject.toml`
 - Run dev API: `uvicorn backend.api.main:app --reload`
+- Batch briefs → exports: `python scripts/render_all_briefs.py --formats svg dxf`
 
 ## Roadmap (high-level)
 - MVP: parser → CP-SAT layout → validation → export (SVG/PDF/DXF) → lightweight editor
